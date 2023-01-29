@@ -4,7 +4,7 @@ import java.io.*;
 
 public class TCPClient {
 
-    public TCPClient() { // default constructor, likely to not be used in code
+    public TCPClient() { // default constructor
     }
 
     public byte[] askServer(String hostname, int port, byte[] toServerBytes) throws IOException {
