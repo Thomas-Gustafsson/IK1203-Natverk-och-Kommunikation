@@ -15,22 +15,18 @@ public class TCPClient {
         outputStream.write(toServerBytes);
         outputStream.flush();
 
-        int totalBytesRead = 0;
+        ByteArrayOutputStream receivedData = new ByteArrayOutputStream();
         int bytesRead;
-        byte[] fromServerBytes = new byte[1024];
-        while ((bytesRead = inputStream.read(fromServerBytes, totalBytesRead, fromServerBytes.length - totalBytesRead)) > 0) {
-            totalBytesRead += bytesRead;
-            if (totalBytesRead == fromServerBytes.length) {
-                byte[] newArray = new byte[fromServerBytes.length * 2];
-                System.arraycopy(fromServerBytes, 0, newArray, 0, fromServerBytes.length);
-                fromServerBytes = newArray;
+        byte[] buffer = new byte[1024];
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            receivedData.write(buffer, 0, bytesRead);
+            if (bytesRead < buffer.length) {
+                break;
             }
         }
 
         socket.close();
 
-        byte[] response = new byte[totalBytesRead];
-        System.arraycopy(fromServerBytes, 0, response, 0, totalBytesRead);
-        return response;
+        return receivedData.toByteArray();
     }
 }
