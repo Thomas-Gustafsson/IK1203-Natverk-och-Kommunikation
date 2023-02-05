@@ -26,8 +26,10 @@ public class TCPClient {
 
             ByteArrayOutputStream receivedData = new ByteArrayOutputStream();
             long startTime = currentTimeMillis();
-            while(currentTimeMillis() - startTime < timeout && !socket.isClosed()) {
-                if(shutdown) {
+            outer:
+            // Break out of outer while statement if data limit or timeout reached
+            while (currentTimeMillis() - startTime < timeout && !socket.isClosed()) {
+                if (shutdown) {
                     System.out.println("Shutdown acknowledged. Data will not be received, closing connection.\n");
                     break;
                 }
@@ -36,12 +38,15 @@ public class TCPClient {
                 byte[] buffer = new byte[1024];
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
                     receivedData.write(buffer, 0, bytesRead);
-                    if(limit != null && receivedData.size() >= limit) {
-                        System.out.println("Data limit reached, closing connection.\n");
-                        break;
+                    if (System.currentTimeMillis() - startTime >= timeout) {
+                        System.out.println("Timeout reached, closing connection.\n");
+                        break outer;
                     }
-                    if(bytesRead < buffer.length) {        // stop reading from input stream when there's no more data to be read
-                        System.out.println("Success, server replied:");
+                    if (limit != null && receivedData.size() >= limit) {
+                        System.out.println("Data limit reached, closing connection.\n");
+                        break outer;
+                    }
+                    if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
                         break;
                     }
                 }
@@ -57,8 +62,10 @@ public class TCPClient {
 
             ByteArrayOutputStream receivedData = new ByteArrayOutputStream();
             long startTime = currentTimeMillis();
-            while(currentTimeMillis() - startTime < timeout) {
-                if(shutdown) {
+            outer:
+            // Break out of outer while statement if data limit or timeout reached
+            while (currentTimeMillis() - startTime < timeout && !socket.isClosed()) {
+                if (shutdown) {
                     System.out.println("Shutdown acknowledged. Data will not be received, closing connection.\n");
                     break;
                 }
@@ -67,18 +74,21 @@ public class TCPClient {
                 byte[] buffer = new byte[1024];
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
                     receivedData.write(buffer, 0, bytesRead);
-                    if(limit != null && receivedData.size() >= limit) {
-                        System.out.println("Data limit reached, closing connection.\n");
-                        break;
+                    if (System.currentTimeMillis() - startTime >= timeout) {
+                        System.out.println("Timeout reached, closing connection.\n");
+                        break outer;
                     }
-                    if(bytesRead < buffer.length) {        // stop reading from input stream when there's no more data to be read
-                        System.out.println("No more data to be read, closing connection.\n");
+                    if (limit != null && receivedData.size() >= limit) {
+                        System.out.println("Data limit reached, closing connection.\n");
+                        break outer;
+                    }
+                    if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
                         break;
                     }
                 }
                 return receivedData.toByteArray();
             }
-        } return null;
+        }
+        return null;
     }
 }
-
