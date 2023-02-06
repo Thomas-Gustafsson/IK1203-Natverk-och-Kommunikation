@@ -37,8 +37,7 @@ public class TCPClient {
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 receivedData.write(buffer, 0, bytesRead);
                 if (limit != null && receivedData.size() >= limit) {
-                    System.out.println("Data limit reached, closing connection.\n");
-                    break;
+                    return "Data limit reached, closing connection.\n".getBytes();
                 }
                 if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
                     break;
@@ -68,8 +67,7 @@ public class TCPClient {
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 receivedData.write(buffer, 0, bytesRead);
                 if (limit != null && receivedData.size() >= limit) {
-                    System.out.println("Data limit reached, closing connection.\n");
-                    break;
+                    return "Data limit reached, closing connection.\n".getBytes();
                 }
                 if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
                     break;
