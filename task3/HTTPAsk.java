@@ -4,12 +4,13 @@ import tcpclient.TCPClient;
 
 public class HTTPAsk {
     public static void main(String[] args) throws Exception {
-        ServerSocket welcomeSocket = new ServerSocket(6789);
+        int serverPort = Integer.parseInt(args[0]);
+        ServerSocket serverSocket = new ServerSocket(serverPort);
 
         while (true) {
-            Socket connectionSocket = welcomeSocket.accept();
-            InputStream inputStream = connectionSocket.getInputStream();
-            OutputStream outputStream = connectionSocket.getOutputStream();
+            Socket tcpConnectionSocket = serverSocket.accept();
+            InputStream inputStream = tcpConnectionSocket.getInputStream();
+            OutputStream outputStream = tcpConnectionSocket.getOutputStream();
 
             // Read the client request as a string
             byte[] clientRequestBytes = new byte[1024];
@@ -63,7 +64,7 @@ public class HTTPAsk {
             byte[] responseBytesWithHeader = (response + new String(responseBytes, "UTF-8")).getBytes("UTF-8");
             outputStream.write(responseBytesWithHeader);
 
-            connectionSocket.close();
+            tcpConnectionSocket.close();
         }
     }
 }
