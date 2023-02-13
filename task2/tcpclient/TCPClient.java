@@ -30,7 +30,7 @@ public class TCPClient {
             byte[] buffer = new byte[1024];
             socket.setSoTimeout(timeout);
 
-            while ((bytesRead = inputStream.read(buffer)) != -1 && !socket.isOutputShutdown()) {
+            while ((bytesRead = inputStream.read(buffer)) != -1 && !socket.isInputShutdown()) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
                     receivedData.write(buffer, 0, limit - receivedData.size());
                     System.out.println("Data limit reached, returning data received so far.\n");
