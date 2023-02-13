@@ -21,19 +21,14 @@ public class TCPClient {
              InputStream inputStream = socket.getInputStream();
              OutputStream outputStream = writeData ? socket.getOutputStream() : null) {
 
-            if (shutdown) {
-                socket.shutdownOutput();
-                return "\nShutdown acknowledged. Data will not be received, connection closed.".getBytes();
-            }
-
-            socket.setSoTimeout(timeout);
-            int bytesRead;
-            byte[] buffer = new byte[1024];
-
             if (writeData) {
                 outputStream.write(toServerBytes);
                 outputStream.flush();
             }
+
+            int bytesRead;
+            byte[] buffer = new byte[1024];
+            socket.setSoTimeout(timeout);
 
             while ((bytesRead = inputStream.read(buffer)) != -1 && !socket.isOutputShutdown()) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
@@ -46,6 +41,9 @@ public class TCPClient {
                     System.out.println("Success, all data received.\n");
                     break;
                 }
+            }
+            if (shutdown) {
+                socket.shutdownOutput();
             }
             return receivedData.toByteArray();
         } catch (SocketTimeoutException e) {
