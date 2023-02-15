@@ -37,10 +37,6 @@ public class TCPClient {
                     break;
                 }
                 receivedData.write(buffer, 0, bytesRead);
-                if (bytesRead < buffer.length) {  // stop reading from input stream when there's no more data to be read
-                    // System.out.println("Success, all data received.\n");
-                    break;
-                }
             }
             return receivedData.toByteArray();
         } catch (SocketTimeoutException e) {
