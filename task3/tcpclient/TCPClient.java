@@ -4,46 +4,41 @@ import java.io.*;
 
 public class TCPClient {
     private final boolean shutdown;
-    private Integer timeout = 0;
+    private final Integer timeout;
     private final Integer limit;
 
     public TCPClient(boolean shutdown, Integer timeout, Integer limit) {
         this.shutdown = shutdown;
-        if(timeout != null){
-            this.timeout = timeout;
-        }
+        this.timeout = timeout;
         this.limit = limit;
     }
 
-    private byte[] handleServerRequest(String hostname, int port, byte[] toServerBytes, boolean writeData) {
+    private byte[] handleServerRequest(String hostname, int port, byte[] toServerBytes, boolean writeData) throws IOException {
         ByteArrayOutputStream receivedData = new ByteArrayOutputStream();
         try (Socket socket = new Socket(hostname, port);
              InputStream inputStream = socket.getInputStream();
              OutputStream outputStream = writeData ? socket.getOutputStream() : null) {
-
-            if (shutdown) {
-                socket.shutdownOutput();
-                return "\nShutdown acknowledged. Data will not be received, connection closed.".getBytes();
-            }
-
-            socket.setSoTimeout(timeout);
-            int bytesRead;
-            byte[] buffer = new byte[1024];
 
             if (writeData) {
                 outputStream.write(toServerBytes);
                 outputStream.flush();
             }
 
-            while ((bytesRead = inputStream.read(buffer)) != -1 && !socket.isOutputShutdown()) {
+            if (shutdown) socket.shutdownOutput();
+
+            int bytesRead;
+            byte[] buffer = new byte[1024];
+            if (timeout != null) socket.setSoTimeout(timeout);
+
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
                     receivedData.write(buffer, 0, limit - receivedData.size());
-                    System.out.println("Data limit reached, returning data received so far.\n");
-                    return receivedData.toByteArray();
+                    // System.out.println("Data limit reached, returning data received so far.\n");
+                    break;
                 }
                 receivedData.write(buffer, 0, bytesRead);
-                if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
-                    System.out.println("Success, all data received.\n");
+                if (bytesRead < buffer.length) {  // stop reading from input stream when there's no more data to be read
+                    // System.out.println("Success, all data received.\n");
                     break;
                 }
             }
@@ -52,13 +47,9 @@ public class TCPClient {
             if (receivedData.size() == 0) {
                 return "\nTimeout reached, no data to return.".getBytes();
             } else { // might happen if server manages to send data but lags -timeout- ms between sending bytes
-                System.out.println("Timeout reached, returning data received so far.\n");
+                // System.out.println("Timeout reached, returning data received so far.\n");
                 return receivedData.toByteArray();
             }
-        } catch (UnknownHostException e) {
-            return ("HTTP/1.0 404 Not Found\r\n\r\nUnknown host: " + hostname).getBytes();
-        } catch (IOException e) {
-            return ("HTTP/1.0 400 Bad Request \r\n\r\nError communicating with server: " + hostname).getBytes();
         }
     }
 
