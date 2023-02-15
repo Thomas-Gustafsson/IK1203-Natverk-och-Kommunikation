@@ -33,12 +33,12 @@ public class TCPClient {
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
                     receivedData.write(buffer, 0, limit - receivedData.size());
-                    System.out.println("Data limit reached, returning data received so far.\n");
+                    // System.out.println("Data limit reached, returning data received so far.\n");
                     break;
                 }
                 receivedData.write(buffer, 0, bytesRead);
                 if (bytesRead < buffer.length) {  // stop reading from input stream when there's no more data to be read
-                    System.out.println("Success, all data received.\n");
+                    // System.out.println("Success, all data received.\n");
                     break;
                 }
             }
@@ -47,7 +47,7 @@ public class TCPClient {
             if (receivedData.size() == 0) {
                 return "\nTimeout reached, no data to return.".getBytes();
             } else { // might happen if server manages to send data but lags -timeout- ms between sending bytes
-                System.out.println("Timeout reached, returning data received so far.\n");
+                // System.out.println("Timeout reached, returning data received so far.\n");
                 return receivedData.toByteArray();
             }
         }
