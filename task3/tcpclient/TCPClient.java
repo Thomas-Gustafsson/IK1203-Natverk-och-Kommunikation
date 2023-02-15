@@ -15,7 +15,7 @@ public class TCPClient {
         this.limit = limit;
     }
 
-    private byte[] handleServerRequest(String hostname, int port, byte[] toServerBytes, boolean writeData) throws IOException {
+    private byte[] handleServerRequest(String hostname, int port, byte[] toServerBytes, boolean writeData) {
         ByteArrayOutputStream receivedData = new ByteArrayOutputStream();
         try (Socket socket = new Socket(hostname, port);
              InputStream inputStream = socket.getInputStream();
@@ -55,6 +55,10 @@ public class TCPClient {
                 System.out.println("Timeout reached, returning data received so far.\n");
                 return receivedData.toByteArray();
             }
+        } catch (UnknownHostException e) {
+            return ("HTTP/1.0 404 Not Found\r\n\r\nUnknown host: " + hostname).getBytes();
+        } catch (IOException e) {
+            return ("HTTP/1.0 400 Bad Request \r\n\r\nError communicating with server: " + hostname).getBytes();
         }
     }
 

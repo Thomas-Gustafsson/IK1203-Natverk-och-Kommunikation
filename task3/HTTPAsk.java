@@ -6,65 +6,69 @@ public class HTTPAsk {
     public static void main(String[] args) throws Exception {
         int serverPort = Integer.parseInt(args[0]);
         ServerSocket serverSocket = new ServerSocket(serverPort);
+        String response = "";
 
         while (true) {
-            Socket tcpConnectionSocket = serverSocket.accept();
-            InputStream inputStream = tcpConnectionSocket.getInputStream();
-            OutputStream outputStream = tcpConnectionSocket.getOutputStream();
+            try (Socket tcpConnectionSocket = serverSocket.accept();
+                InputStream inputStream = tcpConnectionSocket.getInputStream();
+                OutputStream outputStream = tcpConnectionSocket.getOutputStream()) {
 
-            // Read the client request as a string
-            byte[] clientRequestBytes = new byte[1024];
-            int readBytes = inputStream.read(clientRequestBytes);
-            String clientRequest = new String(clientRequestBytes, 0, readBytes, "UTF-8");
+                // Read the client request from browser as a string (GET...)
+                byte[] clientRequestBytes = new byte[1024];
+                int readBytes = inputStream.read(clientRequestBytes);
+                String clientRequest = new String(clientRequestBytes, 0, readBytes);
 
-            // Extract the parameters from the request
-            String[] requestLines = clientRequest.split("\r\n");
-            String[] requestWords = requestLines[0].split(" ");
-            String[] params = requestWords[1].split("[?&]");
+                // Extract the parameters from the request
+                String[] requestLines = clientRequest.split("\r\n");
+                String[] requestWords = requestLines[0].split(" ");
+                String[] params = requestWords[1].split("[?&]");
 
-            // Set all to default values in case not given in HTTP request
-            String hostname = "";
-            int port = 0;
-            int limit = 0;
-            boolean shutdown = false;
-            int timeout = 0;
-            byte[] toServerBytes = new byte[0];
+                // Set all to default values in case not given in HTTP request
+                String hostname = "";
+                int port = 0;
+                int limit = 0;
+                boolean shutdown = false;
+                int timeout = 0;
+                byte[] toServerBytes = new byte[0];
+                // Set each HTTP parameter as local variable to pass as arg to tcpClient.askServer()
+                for (int i = 1; i < params.length; i++) {
+                    String[] param = params[i].split("=");  // hostname=example.com
+                    String key = param[0];  // hostname
+                    String value = param[1]; // example.com
 
-            for (int i = 1; i < params.length; i++) {
-                String[] param = params[i].split("=");
-                String key = param[0];
-                String value = param[1];
+                    switch (key) {
+                        case "hostname":
+                            hostname = value;
+                            break;
+                        case "port":
+                            port = Integer.parseInt(value);
+                            break;
+                        case "limit":
+                            limit = Integer.parseInt(value);
+                            break;
+                        case "shutdown":
+                            shutdown = true;
+                            break;
+                        case "timeout":
+                            timeout = Integer.parseInt(value);
+                            break;
+                        case "toByteArray":
+                            toServerBytes = value.getBytes();
 
-                switch (key) {
-                    case "hostname":
-                        hostname = value;
-                        break;
-                    case "port":
-                        port = Integer.parseInt(value);
-                        break;
-                    case "limit":
-                        limit = Integer.parseInt(value);
-                        break;
-                    case "shutdown":
-                        shutdown = true;
-                        break;
-                    case "timeout":
-                        timeout = Integer.parseInt(value);
-                        break;
-                    case "toByteArray":
-                        toServerBytes = value.getBytes();
-
+                    }
                 }
+
+                TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
+                byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
+
+                ByteArrayOutputStream httpResponse = new ByteArrayOutputStream();
+                httpResponse.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+                httpResponse.write(responseBytes);
+                byte[] responseBytesWithHeader = httpResponse.toByteArray();
+                outputStream.write(responseBytesWithHeader);
+
             }
-
-            TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
-            byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
-
-            String response = "HTTP/1.0 200 OK\r\n\r\n";
-            byte[] responseBytesWithHeader = (response + new String(responseBytes, "UTF-8")).getBytes("UTF-8");
-            outputStream.write(responseBytesWithHeader);
-
-            tcpConnectionSocket.close();
         }
     }
 }
+

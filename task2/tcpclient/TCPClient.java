@@ -4,14 +4,12 @@ import java.io.*;
 
 public class TCPClient {
     private final boolean shutdown;
-    private Integer timeout = 0;
+    private final Integer timeout;
     private final Integer limit;
 
     public TCPClient(boolean shutdown, Integer timeout, Integer limit) {
         this.shutdown = shutdown;
-        if(timeout != null){
-            this.timeout = timeout;
-        }
+        this.timeout = timeout;
         this.limit = limit;
     }
 
@@ -26,25 +24,23 @@ public class TCPClient {
                 outputStream.flush();
             }
 
+            if (shutdown) socket.shutdownOutput();
+
             int bytesRead;
             byte[] buffer = new byte[1024];
-            socket.setSoTimeout(timeout);
+            if (timeout != null) socket.setSoTimeout(timeout);
 
-            while (true) {
-                bytesRead = inputStream.read(buffer);
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
                     receivedData.write(buffer, 0, limit - receivedData.size());
                     System.out.println("Data limit reached, returning data received so far.\n");
-                    return receivedData.toByteArray();
+                    break;
                 }
                 receivedData.write(buffer, 0, bytesRead);
-                if (bytesRead < buffer.length) {   // stop reading from input stream when there's no more data to be read
+                if (bytesRead < buffer.length) {  // stop reading from input stream when there's no more data to be read
                     System.out.println("Success, all data received.\n");
                     break;
                 }
-            }
-            if (shutdown) {
-                socket.shutdownOutput();
             }
             return receivedData.toByteArray();
         } catch (SocketTimeoutException e) {
