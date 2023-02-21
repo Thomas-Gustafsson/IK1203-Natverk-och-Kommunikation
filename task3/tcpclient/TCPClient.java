@@ -33,7 +33,7 @@ public class TCPClient {
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 if (limit != null && receivedData.size() + bytesRead > limit) {
                     receivedData.write(buffer, 0, limit - receivedData.size());
-                    System.out.println("Data limit reached, returning data received so far.\n");
+                    System.out.println("Data limit reached with limit " + limit + ", returning data received so far.\n");
                     break;
                 }
                 receivedData.write(buffer, 0, bytesRead);

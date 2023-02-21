@@ -43,9 +43,6 @@ public class HTTPAsk {
                             try {
                                 port = Integer.parseInt(value);
                             } catch (NumberFormatException e) {
-                                String response = "HTTP/1.1 400 Bad Request\r\n\r\n";
-                                outputStream.write(response.getBytes());
-                                continue;
                             }
                             break;
                         case "limit":
@@ -57,14 +54,9 @@ public class HTTPAsk {
                         case "timeout":
                             timeout = Integer.parseInt(value);
                             break;
-                        case "toByteArray":
+                        case "string":
                             toServerBytes = value.getBytes();
                     }
-                }
-                if (hostname.isEmpty()) {
-                    String response = "HTTP/1.1 404 Not Found\r\n\r\nMissing hostname parameter";
-                    outputStream.write(response.getBytes());
-                    continue;
                 }
 
                 if (port <= 0 || port > 65535) {
@@ -73,14 +65,19 @@ public class HTTPAsk {
                     continue;
                 }
 
+                if (hostname.isEmpty()) {
+                    String response = "HTTP/1.1 404 Not Found\r\n\r\nMissing hostname parameter";
+                    outputStream.write(response.getBytes());
+                    continue;
+                }
+
                 TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
                 byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
                 ByteArrayOutputStream httpResponse = new ByteArrayOutputStream();
-                httpResponse.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+                httpResponse.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
                 httpResponse.write(responseBytes);
                 byte[] responseBytesWithHeader = httpResponse.toByteArray();
                 outputStream.write(responseBytesWithHeader);
-
             }
         }
     }
