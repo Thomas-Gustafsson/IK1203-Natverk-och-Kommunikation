@@ -6,12 +6,11 @@ public class HTTPAsk {
     public static void main(String[] args) throws Exception {
         int serverPort = Integer.parseInt(args[0]);
         ServerSocket serverSocket = new ServerSocket(serverPort);
-        String response = "";
 
         while (true) {
             try (Socket tcpConnectionSocket = serverSocket.accept();
-                InputStream inputStream = tcpConnectionSocket.getInputStream();
-                OutputStream outputStream = tcpConnectionSocket.getOutputStream()) {
+                 InputStream inputStream = tcpConnectionSocket.getInputStream();
+                 OutputStream outputStream = tcpConnectionSocket.getOutputStream()) {
 
                 // Read the client request from browser as a string (GET...)
                 byte[] clientRequestBytes = new byte[1024];
@@ -41,7 +40,10 @@ public class HTTPAsk {
                             hostname = value;
                             break;
                         case "port":
-                            port = Integer.parseInt(value);
+                            try {
+                                port = Integer.parseInt(value);
+                            } catch (NumberFormatException e) {
+                            }
                             break;
                         case "limit":
                             limit = Integer.parseInt(value);
@@ -52,21 +54,30 @@ public class HTTPAsk {
                         case "timeout":
                             timeout = Integer.parseInt(value);
                             break;
-                        case "toByteArray":
+                        case "string":
                             toServerBytes = value.getBytes();
-
                     }
+                }
+
+                if (port <= 0 || port > 65535) {
+                    String response = "HTTP/1.1 400 Bad Request\r\n\r\nInvalid port number";
+                    outputStream.write(response.getBytes());
+                    continue;
+                }
+
+                if (hostname.isEmpty()) {
+                    String response = "HTTP/1.1 404 Not Found\r\n\r\nMissing hostname parameter";
+                    outputStream.write(response.getBytes());
+                    continue;
                 }
 
                 TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
                 byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
-
                 ByteArrayOutputStream httpResponse = new ByteArrayOutputStream();
-                httpResponse.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+                httpResponse.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
                 httpResponse.write(responseBytes);
                 byte[] responseBytesWithHeader = httpResponse.toByteArray();
                 outputStream.write(responseBytesWithHeader);
-
             }
         }
     }
