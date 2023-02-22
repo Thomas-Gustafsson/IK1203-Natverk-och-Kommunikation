@@ -4,7 +4,7 @@ import tcpclient.TCPClient;
 
 public class HTTPAsk {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         int serverPort = Integer.parseInt(args[0]);
 
         try (ServerSocket serverSocket = new ServerSocket(serverPort)) {
