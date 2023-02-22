@@ -40,7 +40,7 @@ public class HTTPAsk {
 
 
                     // Check if all necessary parameters are present in the request
-                    if (!clientRequest.contains("hostname") || !clientRequest.contains("port") || !clientRequest.contains("HTTP/1.1") || !clientRequest.contains("GET")) {
+                    if (!clientRequest.contains("GET") || !clientRequest.contains("HTTP/1.1") || !clientRequest.contains("hostname") || !clientRequest.contains("port")) {
                         response.append("HTTP/1.1 400 Bad Request\r\n");
                         outputStream.write(response.toString().getBytes());
                         // Skip processing the rest of the loop for this request
