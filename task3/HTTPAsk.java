@@ -3,83 +3,107 @@ import java.net.*;
 import tcpclient.TCPClient;
 
 public class HTTPAsk {
+
     public static void main(String[] args) throws Exception {
         int serverPort = Integer.parseInt(args[0]);
-        ServerSocket serverSocket = new ServerSocket(serverPort);
 
-        while (true) {
-            try (Socket tcpConnectionSocket = serverSocket.accept();
-                 InputStream inputStream = tcpConnectionSocket.getInputStream();
-                 OutputStream outputStream = tcpConnectionSocket.getOutputStream()) {
+        try (ServerSocket serverSocket = new ServerSocket(serverPort)) {
+            while (true) {
+                Socket connectionSocket = serverSocket.accept();
+                try {
+                    InputStream inputStream = connectionSocket.getInputStream();
+                    OutputStream outputStream = connectionSocket.getOutputStream();
 
-                // Read the client request from browser as a string (GET...)
-                byte[] clientRequestBytes = new byte[1024];
-                int readBytes = inputStream.read(clientRequestBytes);
-                String clientRequest = new String(clientRequestBytes, 0, readBytes);
+                    String hostname = "";
+                    int port = 0;
+                    Integer limit = null;
+                    boolean shutdown = false;
+                    Integer timeout = null;
+                    byte[] toServerBytes = new byte[0];
+                    StringBuilder response = new StringBuilder();
 
-                // Extract the parameters from the request
-                String[] requestLines = clientRequest.split("\r\n");
-                String[] requestWords = requestLines[0].split(" ");
-                String[] params = requestWords[1].split("[?&]");
+                    // Read the client request from browser as a string (GET...)
+                    byte[] clientRequestBytes = new byte[1024];
+                    inputStream.read(clientRequestBytes);
+                    String clientRequest = new String(clientRequestBytes).trim();
 
-                // Set all to default values in case not given in HTTP request
-                String hostname = "";
-                int port = 0;
-                int limit = 0;
-                boolean shutdown = false;
-                int timeout = 0;
-                byte[] toServerBytes = new byte[0];
-                // Set each HTTP parameter as local variable to pass as arg to tcpClient.askServer()
-                for (int i = 1; i < params.length; i++) {
-                    String[] param = params[i].split("=");  // hostname=example.com
-                    String key = param[0];  // hostname
-                    String value = param[1]; // example.com
+                    // Extract the parameters from the request
+                    String[] requestArray = clientRequest.split("[ ?=&\r\n]+");
 
-                    switch (key) {
-                        case "hostname":
-                            hostname = value;
-                            break;
-                        case "port":
-                            try {
-                                port = Integer.parseInt(value);
-                            } catch (NumberFormatException e) {
-                            }
-                            break;
-                        case "limit":
-                            limit = Integer.parseInt(value);
-                            break;
-                        case "shutdown":
-                            shutdown = true;
-                            break;
-                        case "timeout":
-                            timeout = Integer.parseInt(value);
-                            break;
-                        case "string":
-                            toServerBytes = value.getBytes();
+                    // Check if request contains "ask" keyword
+                    if (!clientRequest.contains("ask")) {
+                        response.append("HTTP/1.1 404 Not Found\r\n");
+                        outputStream.write(response.toString().getBytes());
+                        // Skip processing the rest of the loop for this request
+                        continue;
                     }
-                }
 
-                if (port <= 0 || port > 65535) {
-                    String response = "HTTP/1.1 400 Bad Request\r\n\r\nInvalid port number";
-                    outputStream.write(response.getBytes());
-                    continue;
-                }
 
-                if (hostname.isEmpty()) {
-                    String response = "HTTP/1.1 404 Not Found\r\n\r\nMissing hostname parameter";
-                    outputStream.write(response.getBytes());
-                    continue;
-                }
+                    // Check if all necessary parameters are present in the request
+                    if (!clientRequest.contains("hostname") || !clientRequest.contains("port") || !clientRequest.contains("HTTP/1.1") || !clientRequest.contains("GET")) {
+                        response.append("HTTP/1.1 400 Bad Request\r\n");
+                        outputStream.write(response.toString().getBytes());
+                        // Skip processing the rest of the loop for this request
+                        continue;
+                    }
 
-                TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
-                byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
-                ByteArrayOutputStream httpResponse = new ByteArrayOutputStream();
-                httpResponse.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
-                httpResponse.write(responseBytes);
-                byte[] responseBytesWithHeader = httpResponse.toByteArray();
-                outputStream.write(responseBytesWithHeader);
+                    // Set each HTTP parameter as local variable to pass as arg to tcpClient.askServer()
+                    for (int i = 2; i < requestArray.length; i++) {
+                        String key = requestArray[i];
+                        switch (key) {
+                            case "hostname":
+                                hostname = requestArray[++i];
+                                break;
+                            case "port":
+                                try {
+                                    port = Integer.parseInt(requestArray[++i]);
+                                } catch (NumberFormatException e) {
+                                    continue;
+                                }
+                                break;
+                            case "limit":
+                                limit = Integer.valueOf(requestArray[++i]);
+                                break;
+                            case "shutdown":
+                                shutdown = Boolean.parseBoolean(requestArray[++i]);
+                                break;
+                            case "timeout":
+                                timeout = Integer.valueOf(requestArray[++i]);
+                                break;
+                            case "string":
+                                toServerBytes = requestArray[++i].getBytes();
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    // Check if port number is valid
+                    if (port <= 0 || port > 65535) {
+                        response.append("HTTP/1.1 400 Bad Request\r\nInvalid port number");
+                        outputStream.write(response.toString().getBytes());
+                        continue;
+                    }
+
+                    // Check if hostname is empty
+                    if (hostname.isEmpty()) {
+                        response.append("HTTP/1.1 404 Not Found\r\nMissing hostname parameter");
+                        outputStream.write(response.toString().getBytes());
+                        continue;
+                    }
+
+                    TCPClient tcpClient = new tcpclient.TCPClient(shutdown, timeout, limit);
+                    byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
+                    response.append("HTTP/1.1 200 OK\r\n\r\n");
+                    response.append(new String(responseBytes, "UTF-8") + "\r\n");
+
+                    outputStream.write(response.toString().getBytes());
+                } finally {
+                    connectionSocket.close();
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
-
