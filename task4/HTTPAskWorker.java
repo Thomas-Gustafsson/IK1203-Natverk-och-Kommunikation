@@ -14,14 +14,14 @@ public class HTTPAskWorker implements Runnable {
         try {
             InputStream inputStream = connectionSocket.getInputStream();
             OutputStream outputStream = connectionSocket.getOutputStream();
+            StringBuilder response = new StringBuilder();
 
-            String hostname = "";
+            String hostname = null;
             int port = 0;
             Integer limit = null;
             boolean shutdown = false;
             Integer timeout = null;
             byte[] toServerBytes = new byte[0];
-            StringBuilder response = new StringBuilder();
 
             // Read the client request from browser as a string (GET...)
             byte[] clientRequestBytes = new byte[1024];
@@ -29,7 +29,7 @@ public class HTTPAskWorker implements Runnable {
             String clientRequest = new String(clientRequestBytes).trim();
 
             // Extract the parameters from the request
-            String[] requestArray = clientRequest.split("[ ?=&\r\n]+");
+            String[] requestArray = clientRequest.split("[ ?=&]");
 
             // Check if request contains "ask" keyword
             if (!clientRequest.contains("ask")) {
@@ -38,7 +38,6 @@ public class HTTPAskWorker implements Runnable {
                 // Skip processing the rest of the loop for this request
                 return;
             }
-
 
             // Check if all necessary parameters are present in the request
             if (!clientRequest.contains("GET") || !clientRequest.contains("HTTP/1.1") || !clientRequest.contains("hostname") || !clientRequest.contains("port")) {
@@ -62,8 +61,8 @@ public class HTTPAskWorker implements Runnable {
                             continue;
                         }
                         break;
-                    case "limit":
-                        limit = Integer.valueOf(requestArray[++i]);
+                    case "string":
+                        toServerBytes = requestArray[++i].getBytes();
                         break;
                     case "shutdown":
                         shutdown = Boolean.parseBoolean(requestArray[++i]);
@@ -71,8 +70,8 @@ public class HTTPAskWorker implements Runnable {
                     case "timeout":
                         timeout = Integer.valueOf(requestArray[++i]);
                         break;
-                    case "string":
-                        toServerBytes = requestArray[++i].getBytes();
+                    case "limit":
+                        limit = Integer.valueOf(requestArray[++i]);
                         break;
                     default:
                         break;
@@ -81,14 +80,7 @@ public class HTTPAskWorker implements Runnable {
 
             // Check if port number is valid
             if (port <= 0 || port > 65535) {
-                response.append("HTTP/1.1 400 Bad Request\r\nInvalid port number");
-                outputStream.write(response.toString().getBytes());
-                return;
-            }
-
-            // Check if hostname is empty
-            if (hostname.isEmpty()) {
-                response.append("HTTP/1.1 404 Not Found\r\nMissing hostname parameter");
+                response.append("HTTP/1.1 400 Bad Request\r\n");
                 outputStream.write(response.toString().getBytes());
                 return;
             }
@@ -97,7 +89,6 @@ public class HTTPAskWorker implements Runnable {
             byte[] responseBytes = tcpClient.askServer(hostname, port, toServerBytes);
             response.append("HTTP/1.1 200 OK\r\n\r\n");
             response.append(new String(responseBytes, "UTF-8") + "\r\n");
-
             outputStream.write(response.toString().getBytes());
 
         } catch (IOException e) {

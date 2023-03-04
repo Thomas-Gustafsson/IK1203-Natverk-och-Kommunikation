@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.*;
 
-public class concHTTPAsk {
+public class ConcHTTPAsk {
 
     public static void main(String[] args) {
         int serverPort = Integer.parseInt(args[0]);
@@ -11,7 +11,7 @@ public class concHTTPAsk {
                 Socket connectionSocket = serverSocket.accept();
                 Thread thread = new Thread(new HTTPAskWorker(connectionSocket));
                 thread.start();
-            }
+            }  
         } catch (IOException e) {
             e.printStackTrace();
         }
